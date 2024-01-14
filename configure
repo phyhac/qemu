@@ -295,6 +295,9 @@ bindir="bin"
 skip_meson=no
 vfio_user_server="disabled"
 
+# Thuffle: default thuffle value
+thuffle="yes"
+
 # The following Meson options are handled manually (still they
 # are included in the automatically generated help message)
 
@@ -896,6 +899,11 @@ for opt do
   ;;
   --disable-vfio-user-server) vfio_user_server="disabled"
   ;;
+  # Thuffle: add cmd opts for thuffle
+  --enable-thuffle) thuffle=yes
+  ;;
+  --disable-thuffle) thuffle=no
+  ;;
   # everything else has the same name in configure and meson
   --*) meson_option_parse "$opt" "$optarg"
   ;;
@@ -1049,6 +1057,7 @@ cat << EOF
   debug-info      debugging information
   safe-stack      SafeStack Stack Smash Protection. Depends on
                   clang/llvm and requires coroutine backend ucontext.
+  [*] thuffle     Thuffle scheduler inspired by Segfuzz
 
 NOTE: The object files are built at the place where configure is launched
 EOF
@@ -2385,6 +2394,10 @@ echo "SRC_PATH=$source_path" >> $config_host_mak
 echo "TARGET_DIRS=$target_list" >> $config_host_mak
 if test "$modules" = "yes"; then
   echo "CONFIG_MODULES=y" >> $config_host_mak
+fi
+# Thuffle: add CONFIG
+if test "$thuffle" = "yes"; then
+  ehoc "CONFIG_THUFFLE=y" >> $config_host_mak
 fi
 
 # XXX: suppress that

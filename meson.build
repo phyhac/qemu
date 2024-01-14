@@ -3072,6 +3072,7 @@ subdir('crypto')
 subdir('ui')
 subdir('hw')
 subdir('gdbstub')
+subdir('thuffle')
 
 
 if enable_modules
@@ -3793,6 +3794,7 @@ summary_info += {'vhost-user-crypto support': have_vhost_user_crypto}
 summary_info += {'vhost-user-blk server support': have_vhost_user_blk_server}
 summary_info += {'vhost-vdpa support': have_vhost_vdpa}
 summary_info += {'build guest agent': have_ga}
+summary_info += {'Thuffle scheduler inspired by Segfuzz': config_host.has_key('CONFIG_THUFFLE')}
 summary(summary_info, bool_yn: true, section: 'Configurable features')
 
 # Compilation information

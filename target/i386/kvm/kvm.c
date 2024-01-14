@@ -5300,6 +5300,127 @@ void kvm_arch_update_guest_debug(CPUState *cpu, struct kvm_guest_debug *dbg)
     }
 }
 
+#ifdef CONFIG_THUFFLE
+
+#include "thuffle/constant.h"
+static struct thuffle_hw_breakpoint {
+    struct {
+        target_ulong addr;
+        int len;
+        int type;
+    } bp[4];
+    int nb;
+} hw_bp[MAX_NR_CPUS];
+
+void thuffle_kvm_arch_update_guest_debug(CPUState *cpu, struct kvm_guest_debug *dbg)
+{
+    const uint8_t type_code[] = {
+        [GDB_BREAKPOINT_HW] = 0x0,
+        [GDB_WATCHPOINT_WRITE] = 0x1,
+        [GDB_WATCHPOINT_ACCESS] = 0x3
+    };
+    const uint8_t len_code[] = {
+        [1] = 0x0, [2] = 0x1, [4] = 0x3, [8] = 0x2
+    };
+    int n;
+
+    // if (kvm_sw_breakpoints_active(cpu)) {
+    //     dbg->control |= KVM_GUESTDBG_ENABLE | KVM_GUESTDBG_USE_SW_BP;
+    // }
+    struct thuffle_hw_breakpoint cpu_bp = hw_bp[cpu->cpu_index];
+    if (cpu_bp.nb > 0) {
+        dbg->control |= KVM_GUESTDBG_ENABLE | KVM_GUESTDBG_USE_HW_BP;
+        dbg->arch.debugreg[7] = 0x0600;
+        for (n = 0; n < cpu_bp.nb; n++) {
+            dbg->arch.debugreg[n] = cpu_bp.bp[n].addr;
+            dbg->arch.debugreg[7] |= (2 << (n * 2)) |
+                (type_code[cpu_bp.bp[n].type] << (16 + n*4)) |
+                ((uint32_t)len_code[cpu_bp.bp[n].len] << (18 + n*4));
+        }
+    }
+}
+
+int thuffle_find_hw_breakpoint(CPUState *cpu, target_ulong addr, int len, int type)
+{
+    int n;
+    struct thuffle_hw_breakpoint cpu_bp = hw_bp[cpu->cpu_index];
+    int nb = cpu_bp.nb;
+
+    for (n = 0; n < nb; n++) {
+        if (cpu_bp.bp[n].addr == addr && cpu_bp.bp[n].type == type &&
+            (cpu_bp.bp[n].len == len || len == -1)) {
+            return n;
+        }
+    }
+    return -1;
+}
+
+int thuffle_kvm_arch_insert_hw_breakpoint(CPUState *cpu, target_ulong addr,
+                                  target_ulong len, int type)
+{
+    switch (type) {
+    case GDB_BREAKPOINT_HW:
+        len = 1;
+        break;
+    case GDB_WATCHPOINT_WRITE:
+    case GDB_WATCHPOINT_ACCESS:
+        switch (len) {
+        case 1:
+            break;
+        case 2:
+        case 4:
+        case 8:
+            if (addr & (len - 1)) {
+                return -EINVAL;
+            }
+            break;
+        default:
+            return -EINVAL;
+        }
+        break;
+    default:
+        return -ENOSYS;
+    }
+
+    struct thuffle_hw_breakpoint cpu_bp = hw_bp[cpu->cpu_index];
+    int nb = cpu_bp.nb;
+    if (nb == 4) {
+        return -ENOBUFS;
+    }
+    if (thuffle_find_hw_breakpoint(cpu, addr, len, type) >= 0) {
+        return -EEXIST;
+    }
+    cpu_bp.bp[nb].addr = addr;
+    cpu_bp.bp[nb].len = len;
+    cpu_bp.bp[nb].type = type;
+    cpu_bp.nb++;
+
+    return 0;
+}
+
+int thuffle_kvm_arch_remove_hw_breakpoint(CPUState *cpu, target_ulong addr,
+                                  target_ulong len, int type)
+{
+    struct thuffle_hw_breakpoint cpu_bp = hw_bp[cpu->cpu_index];
+
+    int n = thuffle_find_hw_breakpoint(cpu, addr, 
+        (type == GDB_BREAKPOINT_HW) ? 1 : len, type);
+    if (n < 0) {
+        return -ENOENT;
+    }
+    cpu_bp.nb--;
+    cpu_bp.bp[n] = cpu_bp.bp[cpu_bp.nb];
+
+    return 0;
+}
+
+void thuffle_kvm_arch_remove_all_hw_breakpoints(CPUState *cpu)
+{
+    hw_bp[cpu->cpu_index].nb = 0;
+}
+
+#endif
+
 static bool kvm_install_msr_filters(KVMState *s)
 {
     uint64_t zero = 0;

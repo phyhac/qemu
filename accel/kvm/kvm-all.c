@@ -52,6 +52,10 @@
 #include "hw/boards.h"
 #include "sysemu/stats.h"
 
+#ifdef CONFIG_THUFFLE
+#include "thuffle/thuffle.h"
+#endif
+
 /* This check must be after config-host.h is included */
 #ifdef CONFIG_EVENTFD
 #include <sys/eventfd.h>
@@ -450,6 +454,11 @@ int kvm_init_vcpu(CPUState *cpu, Error **errp)
                          "kvm_init_vcpu: kvm_arch_init_vcpu failed (%lu)",
                          kvm_arch_vcpu_id(cpu));
     }
+
+#ifdef CONFIG_THUFFLE
+    thuffle_init_vcpu(cpu);
+#endif
+
 err:
     return ret;
 }
@@ -2938,7 +2947,15 @@ int kvm_cpu_exec(CPUState *cpu)
          */
         smp_rmb();
 
+#ifdef CONFIG_THUFFLE
+        thuffle_pre_run(cpu);
+#endif
+
         run_ret = kvm_vcpu_ioctl(cpu, KVM_RUN, 0);
+
+#ifdef CONFIG_THUFFLE
+        thuffle_post_run(cpu);
+#endif
 
         attrs = kvm_arch_post_run(cpu, run);
 
@@ -2956,6 +2973,9 @@ int kvm_cpu_exec(CPUState *cpu)
             if (run_ret == -EINTR || run_ret == -EAGAIN) {
                 DPRINTF("io window exit\n");
                 kvm_eat_signals(cpu);
+#ifdef CONFIG_THUFFLE
+                thuffle_handle_kick(cpu);
+#endif
                 ret = EXCP_INTERRUPT;
                 break;
             }
@@ -2975,6 +2995,12 @@ int kvm_cpu_exec(CPUState *cpu)
 
         trace_kvm_run_exit(cpu->cpu_index, run->exit_reason);
         switch (run->exit_reason) {
+#ifdef CONFIG_THUFFLE
+        case KVM_EXIT_HCALL:
+            thuffle_handle_hcall(cpu, run);
+            ret = 0;
+            break;
+#endif
         case KVM_EXIT_IO:
             DPRINTF("handle_io\n");
             /* Called outside BQL */
@@ -3062,6 +3088,11 @@ int kvm_cpu_exec(CPUState *cpu)
             ret = kvm_arch_handle_exit(cpu, run);
             break;
         }
+#ifdef CONFIG_THSCHED
+        if (ret == EXCP_DEBUG) {
+            ret = thsched_handle_breakpoint(cpu);
+        }
+#endif
     } while (ret == 0);
 
     cpu_exec_end(cpu);
@@ -3309,6 +3340,68 @@ int kvm_update_guest_debug(CPUState *cpu, unsigned long reinject_trap)
                RUN_ON_CPU_HOST_PTR(&data));
     return data.err;
 }
+
+#ifdef CONFIG_THUFFLE
+
+int thuffle_kvm_update_guest_debug(CPUState *cpu, unsigned long reinject_trap)
+{
+    struct kvm_set_guest_debug_data data;
+
+    data.dbg.control = reinject_trap;
+
+    if (cpu->singlestep_enabled) {
+        data.dbg.control |= KVM_GUESTDBG_ENABLE | KVM_GUESTDBG_SINGLESTEP;
+
+        if (cpu->singlestep_enabled & SSTEP_NOIRQ) {
+            data.dbg.control |= KVM_GUESTDBG_BLOCKIRQ;
+        }
+    }
+    thuffle_kvm_arch_update_guest_debug(cpu, &data.dbg);
+
+    run_on_cpu(cpu, kvm_invoke_set_guest_debug,
+               RUN_ON_CPU_HOST_PTR(&data));
+    return data.err;
+}
+
+int thuffle_kvm_insert_breakpoint_cpu(CPUState *cpu, target_ulong addr,
+                                  target_ulong len, int type)
+{
+    int err = 0;
+    if (type == GDB_BREAKPOINT_SW) {
+        // TODO
+    } else {
+        err = thuffle_kvm_arch_insert_hw_breakpoint_cpu(cpu, addr, len, type);
+    }
+
+    if (err)
+        return err;
+
+    return thuffle_kvm_update_guest_debug(cpu, 0);
+}
+
+int thuffle_kvm_remove_breakpoint_cpu(CPUState *cpu, target_ulong addr,
+                                  target_ulong len, int type)
+{
+    int err = 0;
+    if (type == GDB_BREAKPOINT_SW) {
+        // TODO
+    } else {
+        err = thuffle_kvm_arch_remove_hw_breakpoint_cpu(cpu, addr, len, type);
+    }
+
+    if (err)
+        return err;
+
+    return thuffle_kvm_update_guest_debug(cpu, 0);
+}
+
+void thuffle_kvm_remove_all_breakpoints_cpu(CPUState *cpu)
+{
+    thuffle_kvm_arch_remove_all_hw_breakpoints_cpu(cpu);
+    thuffle_kvm_update_guest_debug(cpu, 0);
+}
+
+#endif /* CONFIG_THUFFLE */
 
 bool kvm_supports_guest_debug(void)
 {
