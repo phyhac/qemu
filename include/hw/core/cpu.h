@@ -20,6 +20,10 @@
 #ifndef QEMU_CPU_H
 #define QEMU_CPU_H
 
+#ifdef CONFIG_THUFFLE
+#include "linux/kvm.h"
+#endif
+
 #include "hw/qdev-core.h"
 #include "disas/dis-asm.h"
 #include "exec/cpu-common.h"
@@ -448,6 +452,11 @@ struct CPUState {
 
     /* track IOMMUs whose translations we've cached in the TCG TLB */
     GArray *iommu_notifiers;
+
+#ifdef CONFIG_THUFFLE
+    struct kvm_regs regs;
+    bool thf_dirty;
+#endif
 };
 
 typedef QTAILQ_HEAD(CPUTailQ, CPUState) CPUTailQ;

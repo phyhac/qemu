@@ -585,6 +585,23 @@ uint32_t kvm_dirty_ring_size(void);
 
 
 #ifdef CONFIG_THUFFLE
+
+// for all arch, implemented in accel/kvm/kvm-all.c
+
+/**
+ * thuffle_kvm_write_regs - write cpu->regs to in-kernel kvm_regs
+ * 
+ * Returns: 0 if successes, otherwise fails
+ */
+int thuffle_kvm_write_regs(CPUState *cpu);
+
+/**
+ * thuffle_kvm_read_regs - read cpu->regs from in-kernel kvm_regs
+ * 
+ * Returns: 0 if successes, otherwise fails
+ */
+int thuffle_kvm_read_regs(CPUState *cpu);
+
 /**
  * thuffle_kvm_update_guest_debug - thuffle version of kvm_update_guest_debug
  * 
@@ -592,16 +609,18 @@ uint32_t kvm_dirty_ring_size(void);
  */
 int thuffle_kvm_update_guest_debug(CPUState *cpu, unsigned long reinject_trap);
 
-// for different arch
-int thuffle_find_hw_breakpoint(CPUState *cpu, target_ulong addr, int len, int type);
-
-int thuffle_kvm_arch_insert_hw_breakpoint(CPUState *cpu, target_ulong addr,
-                                  target_ulong len, int type);
-int thuffle_kvm_arch_remove_hw_breakpoint(CPUState *cpu,target_ulong addr,
-                                  target_ulong len, int type);
-void thuffle_kvm_arch_remove_all_hw_breakpoints(CPUState *cpu);
+// for different arch, implemented in target directory like target/i386/kvm/kvm.c
 
 void thuffle_kvm_arch_update_guest_debug(CPUState *cpu, struct kvm_guest_debug *dbg);
-#endif
+
+int thuffle_find_hw_breakpoint(CPUState *cpu, uint64_t addr, int len, int type);
+
+int thuffle_kvm_arch_insert_hw_breakpoint(CPUState *cpu, uint64_t addr,
+                                  uint64_t len, int type);
+int thuffle_kvm_arch_remove_hw_breakpoint(CPUState *cpu, uint64_t addr,
+                                  uint64_t len, int type);
+void thuffle_kvm_arch_remove_all_hw_breakpoints(CPUState *cpu);
+
+#endif /* CONFIG_THUFFLE */
 
 #endif

@@ -296,7 +296,7 @@ skip_meson=no
 vfio_user_server="disabled"
 
 # Thuffle: default thuffle value
-thuffle="yes"
+thuffle=""
 
 # The following Meson options are handled manually (still they
 # are included in the automatically generated help message)
@@ -1057,7 +1057,7 @@ cat << EOF
   debug-info      debugging information
   safe-stack      SafeStack Stack Smash Protection. Depends on
                   clang/llvm and requires coroutine backend ucontext.
-  [*] thuffle     Thuffle scheduler inspired by Segfuzz
+  [*] thuffle     Thuffle scheduler
 
 NOTE: The object files are built at the place where configure is launched
 EOF
@@ -2397,7 +2397,7 @@ if test "$modules" = "yes"; then
 fi
 # Thuffle: add CONFIG
 if test "$thuffle" = "yes"; then
-  ehoc "CONFIG_THUFFLE=y" >> $config_host_mak
+  echo "CONFIG_THUFFLE=y" >> $config_host_mak
 fi
 
 # XXX: suppress that

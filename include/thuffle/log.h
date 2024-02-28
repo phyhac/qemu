@@ -4,6 +4,8 @@
 #define LOG_CPU(cpu, fmt, ...)                                                \
     fprintf(stderr, "[CPU #%d] " fmt, cpu->cpu_index,           \
             ##__VA_ARGS__)
-            // cpu->hcall_cookie, cpu->breakpoint_cookie, cpu->timer_cookie,      \
+
+#define DPRINTF(fmt, ...) \
+    do { fprintf(stderr, fmt, ## __VA_ARGS__); } while (0)
 
 #endif /* THUFFLE_LOG_H */    

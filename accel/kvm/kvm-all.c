@@ -73,7 +73,7 @@
 #define KVM_GUESTDBG_BLOCKIRQ 0
 #endif
 
-//#define DEBUG_KVM
+// #define DEBUG_KVM
 
 #ifdef DEBUG_KVM
 #define DPRINTF(fmt, ...) \
@@ -2997,6 +2997,7 @@ int kvm_cpu_exec(CPUState *cpu)
         switch (run->exit_reason) {
 #ifdef CONFIG_THUFFLE
         case KVM_EXIT_HCALL:
+            DPRINTF("handle_hcall\n");
             thuffle_handle_hcall(cpu, run);
             ret = 0;
             break;
@@ -3088,9 +3089,9 @@ int kvm_cpu_exec(CPUState *cpu)
             ret = kvm_arch_handle_exit(cpu, run);
             break;
         }
-#ifdef CONFIG_THSCHED
+#ifdef CONFIG_THUFFLE
         if (ret == EXCP_DEBUG) {
-            ret = thsched_handle_breakpoint(cpu);
+            ret = thuffle_handle_breakpoint(cpu);
         }
 #endif
     } while (ret == 0);
@@ -3363,42 +3364,42 @@ int thuffle_kvm_update_guest_debug(CPUState *cpu, unsigned long reinject_trap)
     return data.err;
 }
 
-int thuffle_kvm_insert_breakpoint_cpu(CPUState *cpu, target_ulong addr,
-                                  target_ulong len, int type)
-{
-    int err = 0;
-    if (type == GDB_BREAKPOINT_SW) {
-        // TODO
-    } else {
-        err = thuffle_kvm_arch_insert_hw_breakpoint_cpu(cpu, addr, len, type);
-    }
+#include "thuffle/breakpoint.h"
 
+int thuffle_kvm_insert_breakpoint(CPUState *cpu, uint64_t addr,
+                                  uint64_t len, int type)
+{
+    int err = thuffle_kvm_arch_insert_hw_breakpoint(cpu, addr, len, type);
     if (err)
         return err;
 
     return thuffle_kvm_update_guest_debug(cpu, 0);
 }
 
-int thuffle_kvm_remove_breakpoint_cpu(CPUState *cpu, target_ulong addr,
-                                  target_ulong len, int type)
+int thuffle_kvm_remove_breakpoint(CPUState *cpu, uint64_t addr,
+                                  uint64_t len, int type)
 {
-    int err = 0;
-    if (type == GDB_BREAKPOINT_SW) {
-        // TODO
-    } else {
-        err = thuffle_kvm_arch_remove_hw_breakpoint_cpu(cpu, addr, len, type);
-    }
-
+    int err = thuffle_kvm_arch_remove_hw_breakpoint(cpu, addr, len, type);
     if (err)
         return err;
 
     return thuffle_kvm_update_guest_debug(cpu, 0);
 }
 
-void thuffle_kvm_remove_all_breakpoints_cpu(CPUState *cpu)
+void thuffle_kvm_remove_all_breakpoints(CPUState *cpu)
 {
-    thuffle_kvm_arch_remove_all_hw_breakpoints_cpu(cpu);
+    thuffle_kvm_arch_remove_all_hw_breakpoints(cpu);
     thuffle_kvm_update_guest_debug(cpu, 0);
+}
+
+int thuffle_kvm_write_regs(CPUState *cpu)
+{
+    return kvm_vcpu_ioctl(cpu, KVM_SET_REGS, &cpu->regs);
+}
+
+int thuffle_kvm_read_regs(CPUState *cpu)
+{
+    return kvm_vcpu_ioctl(cpu, KVM_GET_REGS, &cpu->regs);
 }
 
 #endif /* CONFIG_THUFFLE */

@@ -25,16 +25,16 @@
 // #define NMI_OFFSET (1UL << NMI_SHIFT)
 
 struct thuffle_vmi_info {
-    target_ulong trampoline_addr[2];
-    target_ulong hook_addr;
-    target_ulong current_task;
-    target_ulong preempt_count;
+    uint64_t trampoline_addr[2];
+    uint64_t hook_addr;
+    uint64_t current_task;
+    uint64_t preempt_count;
 };
 #define trampoline_entry_addr trampoline_addr[0]
 #define trampoline_exit_addr trampoline_addr[1]
 
 extern struct thuffle_vmi_info vmi_info;
 
-target_ulong vmi_hint(CPUState *cpu, target_ulong *args);
+uint64_t vmi_hint(CPUState *cpu, uint64_t *args);
 
 #endif /* THUFFLE_VMI_H */

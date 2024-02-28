@@ -5,12 +5,10 @@
 #include "cpu.h"
 #include "thuffle/constant.h"
 
-int thuffle_kvm_insert_breakpoint(CPUState *cpu, target_ulong addr,
-                                  target_ulong len, int type);
-int thuffle_kvm_remove_breakpoint(CPUState *cpu, target_ulong addr,
-                                  target_ulong len, int type);
+int thuffle_kvm_insert_breakpoint(CPUState *cpu, uint64_t addr,
+                                  uint64_t len, int type);
+int thuffle_kvm_remove_breakpoint(CPUState *cpu, uint64_t addr,
+                                  uint64_t len, int type);
 void thuffle_kvm_remove_all_breakpoints(CPUState *cpu);
-
-int thuffle_handle_breakpoint(CPUState *cpu);
 
 #endif /* THUFFLE_BREAKPOINT_H */ 

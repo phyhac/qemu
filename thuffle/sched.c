@@ -1,4 +1,4 @@
-#include "thuffle/thsched.h"
+#include "thuffle/sched.h"
 
 #include <linux/kvm.h>
 #include "qemu/osdep.h"

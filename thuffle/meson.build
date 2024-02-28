@@ -1,7 +1,7 @@
 thuffle_ss = ss.source_set()
 thuffle_ss.add(when: 'CONFIG_THUFFLE', if_true: files(
   'thuffle.c',
-  'thsched.c',
+  'sched.c',
   'hcall.c',
   'breakpoint.c',
   'vmi.c',

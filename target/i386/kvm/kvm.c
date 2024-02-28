@@ -64,7 +64,7 @@
 
 #include CONFIG_DEVICES
 
-//#define DEBUG_KVM
+// #define DEBUG_KVM
 
 #ifdef DEBUG_KVM
 #define DPRINTF(fmt, ...) \
@@ -5340,7 +5340,7 @@ void thuffle_kvm_arch_update_guest_debug(CPUState *cpu, struct kvm_guest_debug *
     }
 }
 
-int thuffle_find_hw_breakpoint(CPUState *cpu, target_ulong addr, int len, int type)
+int thuffle_find_hw_breakpoint(CPUState *cpu, uint64_t addr, int len, int type)
 {
     int n;
     struct thuffle_hw_breakpoint cpu_bp = hw_bp[cpu->cpu_index];
@@ -5355,8 +5355,8 @@ int thuffle_find_hw_breakpoint(CPUState *cpu, target_ulong addr, int len, int ty
     return -1;
 }
 
-int thuffle_kvm_arch_insert_hw_breakpoint(CPUState *cpu, target_ulong addr,
-                                  target_ulong len, int type)
+int thuffle_kvm_arch_insert_hw_breakpoint(CPUState *cpu, uint64_t addr,
+                                  uint64_t len, int type)
 {
     switch (type) {
     case GDB_BREAKPOINT_HW:
@@ -5398,8 +5398,8 @@ int thuffle_kvm_arch_insert_hw_breakpoint(CPUState *cpu, target_ulong addr,
     return 0;
 }
 
-int thuffle_kvm_arch_remove_hw_breakpoint(CPUState *cpu, target_ulong addr,
-                                  target_ulong len, int type)
+int thuffle_kvm_arch_remove_hw_breakpoint(CPUState *cpu, uint64_t addr,
+                                  uint64_t len, int type)
 {
     struct thuffle_hw_breakpoint cpu_bp = hw_bp[cpu->cpu_index];
 
@@ -5419,7 +5419,7 @@ void thuffle_kvm_arch_remove_all_hw_breakpoints(CPUState *cpu)
     hw_bp[cpu->cpu_index].nb = 0;
 }
 
-#endif
+#endif /* CONFIG_THUFFLE */
 
 static bool kvm_install_msr_filters(KVMState *s)
 {

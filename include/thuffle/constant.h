@@ -23,6 +23,7 @@
 // #define HCALL_ENABLE_KSSB 0x3dcb4536
 // #define HCALL_DISABLE_KSSB 0xbed348f5
 #define HCALL_RESET 0x3e444ddf
+#define HCALL_GEN_INTR 0x12391f01
 
 // Subcommands for HCALL_VMI_HINT (saved in kvm_run->hypercall.args[1])
 #define VMI_TRAMPOLINE 0x939aef52
